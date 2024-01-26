@@ -1,9 +1,6 @@
 import requests
 import psycopg2
 
-companies = {'VK': '15478', 'Сбер-IT': '3529', 'Yandex': '1740', 'Merlion': '816',
-             'Альфа-банк': '80', 'Алабуга': '68587', 'Surf-It': '5998412', 'Тинькофф': '78638',
-             'Doubletapp': '3096092', 'Почта Банк': '1049556'}
 
 url = "https://api.hh.ru/vacancies"
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -11,17 +8,32 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 
 
 def get_vacancies(vacancy_name, employer_id):
+    """
+    Возвращает все вакансии работодателя по API запросу
+    :param vacancy_name: Название искомой вакансии
+    :param employer_id: Id работодателя на сайте hh.ru
+    :return:
+    """
+    all_vacancies = []
     params = {"text": vacancy_name,
               'employer_id': employer_id,
               'per_page': 100}
+    total_pages = requests.get(url, headers=headers, params=params).json()["pages"]
 
-    response = requests.get(url, headers=headers, params=params)
+    for i in range(total_pages):
+        params = {"text": vacancy_name,
+                  'employer_id': employer_id,
+                  'per_page': 100,
+                  'page': i}
 
-    if response.status_code == 200:
-        return response.json().get("items", [])
-    else:
-        print(f"'Ошибка при обращении к API:', {response.status_code}")
-        return []
+        response = requests.get(url, headers=headers, params=params)
+
+        if response.status_code == 200:
+            vacs = response.json().get("items", [])
+            all_vacancies.extend(vacs)
+        else:
+            print(f"'Ошибка при обращении к API:', {response.status_code}")
+    return all_vacancies
 
 
 def employers_list(vacancies):
@@ -48,7 +60,8 @@ def vacancies_list(vacancies):
         vac = (vac['id'],
                vac['employer']['id'],
                vac['name'],
-               vac['salary'] if vac['salary'] is not None else 'NULL',
+               vac['salary'].get('from', None) if vac['salary'] is not None else None,
+               vac['salary'].get('to', None) if vac['salary'] is not None else None,
                vac['published_at'],
                vac['snippet']['requirement'],
                vac['experience']['name']
@@ -72,15 +85,16 @@ def create_tables():
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE employers (
-                    employer_id int PRIMARY KEY,
+                    employer_id varchar(20) PRIMARY KEY,
                     company_name varchar
                     )""")
                 cur.execute("""
                     CREATE TABLE vacancies (
-                    vacancy_id int PRIMARY KEY,
-                    employer_id int REFERENCES employers(employer_id),
-                    vacancy_name varchar(100),
-                    salary varchar,
+                    vacancy_id varchar(20) PRIMARY KEY,
+                    employer_id varchar(20) REFERENCES employers(employer_id),
+                    vacancy_name varchar(200),
+                    salary_from varchar,
+                    salary_to varchar,
                     published date,
                     requirements text,
                     experience varchar(30)
@@ -89,9 +103,15 @@ def create_tables():
         conn.close()
 
 
-def filling_database(employer, vacancies, db_name):
+def filling_database(employer, vacancies):
+    """
+    Заполняет таблицы "employers" и "vacancies" базы данных "vacancies"
+    :param employer: Данные работодателя
+    :param vacancies: Данные вакансий рабоодателя
+    :return: None
+    """
     conn = psycopg2.connect(host='localhost',
-                            database=db_name,
+                            database='vacancies',
                             user='postgres',
                             password='12345')
 
@@ -99,18 +119,8 @@ def filling_database(employer, vacancies, db_name):
         with conn:
             with conn.cursor() as cur:
                 cur.execute('INSERT INTO employers VALUES (%s, %s)', employer)
-                count = 0
                 for vac in vacancies:
                     print(vac)
-                    cur.executemany('INSERT INTO vacancies VALUES (%s, %s, %s, %s, %s, %s, %s)', vac)
-                    count += 1
-                    print(count)
+                    cur.execute('INSERT INTO vacancies VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', vac)
     finally:
         conn.close()
-
-
-v = get_vacancies('python', '1740')
-print(vacancies_list(v))
-vac = vacancies_list(v)
-emp = employers_list(v)
-filling_database(emp, vac, 'vacancies')
