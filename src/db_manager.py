@@ -35,6 +35,10 @@ class DBManager:
         return avg_salary
 
     def get_avg_salary_by_employers(self):
+        """
+        Получение средней зарплаты по работодателям
+        :return: список из средних зарплат
+        """
         cursor = self.conn.cursor()
         cursor.execute("""SELECT employers.company_name, AVG(vacancies.salary_to) FROM employers
         JOIN vacancies ON employers.employer_id = vacancies.employer_id
@@ -43,6 +47,18 @@ class DBManager:
         avg_salary = cursor.fetchall()
         cursor.close()
         return avg_salary
+
+    def get_vacancies_by_date(self):
+        cursor = self.conn.cursor()
+        cursor.execute("""SELECT employers.company_name, vacancy_name, salary_from, salary_to, published, 
+        requirements, experience
+        FROM employers
+        JOIN vacancies ON employers.employer_id = vacancies.employer_id
+        ORDER BY published DESC LIMIT 50
+        """)
+        vacancies_by_date = cursor.fetchall()
+        cursor.close()
+        return vacancies_by_date
 
     def get_vacancies_with_higher_salary(self):
         cursor = self.conn.cursor()
