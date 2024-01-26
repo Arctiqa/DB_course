@@ -27,14 +27,19 @@ def main():
                 vac = vacancies_list(vacancies)
                 emp = employers_list(vacancies)
                 filling_database(emp, vac, user_input_db)
-
-            db_operations(user_input_db)
+            try:
+                db_operations(user_input_db)
+            except UnicodeDecodeError:
+                print('Базы данных с таким именем не существует')
 
         except Exception as e:
             print(e)
 
     elif user_input == 'n':
-        db_operations(user_input_db)
+        try:
+            db_operations(user_input_db)
+        except UnicodeDecodeError:
+            print('Базы данных с таким именем не существует')
 
 
 if __name__ == '__main__':
