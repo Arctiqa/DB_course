@@ -12,7 +12,7 @@ def get_vacancies(vacancy_name, employer_id):
     Возвращает все вакансии работодателя по API запросу
     :param vacancy_name: Название искомой вакансии
     :param employer_id: Id работодателя на сайте hh.ru
-    :return:
+    :return: Список вакансий
     """
     all_vacancies = []
     params = {"text": vacancy_name,
@@ -64,19 +64,20 @@ def vacancies_list(vacancies):
                vac['salary'].get('to', None) if vac['salary'] is not None else None,
                vac['published_at'],
                vac['snippet']['requirement'],
-               vac['experience']['name']
+               vac['experience']['name'],
+               vac['apply_alternate_url']
                )
         vac_lst.append(vac)
     return vac_lst
 
 
-def create_tables():
+def create_tables(db_name):
     """
     Создает таблицы работодатель и вакансии работодателя
     :return: None
     """
     conn = psycopg2.connect(host='localhost',
-                            database='vacancies',
+                            database=db_name,
                             user='postgres',
                             password='12345')
 
@@ -85,33 +86,35 @@ def create_tables():
             with conn.cursor() as cur:
                 cur.execute("""
                     CREATE TABLE employers (
-                    employer_id varchar(20) PRIMARY KEY,
+                    employer_id int PRIMARY KEY,
                     company_name varchar
                     )""")
                 cur.execute("""
                     CREATE TABLE vacancies (
-                    vacancy_id varchar(20) PRIMARY KEY,
-                    employer_id varchar(20) REFERENCES employers(employer_id),
+                    vacancy_id int PRIMARY KEY,
+                    employer_id int REFERENCES employers(employer_id),
                     vacancy_name varchar(200),
-                    salary_from varchar,
-                    salary_to varchar,
+                    salary_from int,
+                    salary_to int,
                     published date,
                     requirements text,
-                    experience varchar(30)
+                    experience varchar(30),
+                    url text
                     )""")
     finally:
         conn.close()
 
 
-def filling_database(employer, vacancies):
+def filling_database(employer, vacancies, db_name):
     """
     Заполняет таблицы "employers" и "vacancies" базы данных "vacancies"
     :param employer: Данные работодателя
     :param vacancies: Данные вакансий рабоодателя
+    :param db_name: Имя базы данных
     :return: None
     """
     conn = psycopg2.connect(host='localhost',
-                            database='vacancies',
+                            database=db_name,
                             user='postgres',
                             password='12345')
 
@@ -121,6 +124,6 @@ def filling_database(employer, vacancies):
                 cur.execute('INSERT INTO employers VALUES (%s, %s)', employer)
                 for vac in vacancies:
                     print(vac)
-                    cur.execute('INSERT INTO vacancies VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', vac)
+                    cur.execute('INSERT INTO vacancies VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)', vac)
     finally:
         conn.close()
