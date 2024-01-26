@@ -11,7 +11,7 @@ def main():
     user_input_db = input(':')
 
     print('Продолжить с заполнением базы данных? (y/n)')
-    user_input = input().lower()
+    user_input = input(':').lower()
 
     if user_input == 'y':
         try:
