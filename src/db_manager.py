@@ -20,8 +20,8 @@ class DBManager:
     def get_all_vacancies(self):
         cursor = self.conn.cursor()
         cursor.execute("""
-        SELECT employers.company_name, vacancy_name, salary_from, salary_to, url 
-        FROM employers 
+        SELECT employers.company_name, vacancy_name, salary_from, salary_to, url
+        FROM employers
         JOIN vacancies ON employers.employer_id = vacancies.employer_id""")
         all_vacancies = cursor.fetchall()
         cursor.close()
@@ -57,7 +57,8 @@ class DBManager:
 
     def get_vacancies_with_keyword(self, keyword):
         cursor = self.conn.cursor()
-        cursor.execute(f"""SELECT employers.company_name, vacancy_name, salary_from, salary_to, published, requirements, experience
+        cursor.execute(f"""SELECT employers.company_name, vacancy_name, salary_from, salary_to, published,
+        requirements, experience
         FROM employers
         JOIN vacancies ON employers.employer_id = vacancies.employer_id
         WHERE LOWER(vacancy_name) LIKE '%{keyword}%'
