@@ -28,7 +28,7 @@ def main():
                 emp = employers_list(vacancies)
                 filling_database(emp, vac, user_input_db)
 
-                db_operations(user_input_db)
+            db_operations(user_input_db)
 
         except Exception as e:
             print(e)
